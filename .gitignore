@@ -1,0 +1,20 @@
+# Maven #
+target/
+
+# eclipse #
+.classpath
+.project
+.settings/
+
+# idea #
+.idea/
+*.iml
+
+# Mac #
+.DS_Store
+
+.ssh/
+
+#src/test/
+
+LOG_HOME_IS_UNDEFINED/
