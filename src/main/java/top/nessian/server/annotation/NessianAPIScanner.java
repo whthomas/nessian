@@ -16,6 +16,7 @@ import java.util.Set;
  */
 public class NessianAPIScanner {
 
+    // 方法缓存器.
     public static final Map<String, Method> methodMap = new HashMap<>();
 
     public static void scanner(String scannerPackageName) {
