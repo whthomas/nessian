@@ -7,7 +7,7 @@
     <groupId>top.nessian</groupId>
     <artifactId>nessian-api</artifactId>
     <version>1.0.0</version>
-    
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -58,7 +58,6 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>com.ssqian.fileserver.server.FileTransForServer</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
