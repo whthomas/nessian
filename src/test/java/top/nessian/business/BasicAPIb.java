@@ -8,7 +8,7 @@ import top.nessian.server.annotation.NessianAPI;
 
 public class BasicAPIb {
 
-    @NessianAPI("sdfsdf")
+    @NessianAPI("/yrl")
     public String hello(){
         return "bingo";
     }

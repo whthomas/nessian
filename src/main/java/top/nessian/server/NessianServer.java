@@ -8,12 +8,16 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.nessian.server.annotation.NessianAPIScanner;
 
 /**
  * Created by whthomas on 15/11/7.
  */
 public class NessianServer {
+
+    private static Logger logger = LoggerFactory.getLogger(NessianServer.class);
 
     private static final int PORT = 8080;
 
@@ -33,10 +37,9 @@ public class NessianServer {
 
             Channel ch = b.bind(PORT).sync().channel();
 
-            System.out.println(" server is starting...... ");
+            logger.info(" server is starting...... ");
 
             ch.closeFuture().sync();
-
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
@@ -47,6 +50,11 @@ public class NessianServer {
 
     }
 
+    /**
+     * 启动 server
+     *
+     * @param packageName
+     */
     public static void start(String packageName){
         NessianAPIScanner.scanner(packageName);
         start();

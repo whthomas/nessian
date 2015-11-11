@@ -53,25 +53,18 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
 
         // 先获取 http Request 头信息
         if (msg instanceof HttpRequest) {
-
             HttpRequest request = (HttpRequest) msg;
-
             // 调用下面的method处理.
             this.dealRequestInfo(request, ctx);
-
         }
 
         // 之后会获得 http content信息
         if (msg instanceof HttpContent) {
-
             // 获得content
             HttpContent content = (HttpContent) msg;
-
             // 处理httpContent
             this.dealHttpContent(content, ctx);
-
         }
-
     }
 
     // 处理业务.

@@ -8,7 +8,7 @@ import java.net.MalformedURLException;
  * Created by whthomas on 15/10/27.
  */
 public class ClientTest {
-    public static void main(String args[]){
+    public static void main(String args[]) {
 
         String url = "http://localhost:8080/hessian/ihessian";
 //        String url = "http://localhost:8080";
