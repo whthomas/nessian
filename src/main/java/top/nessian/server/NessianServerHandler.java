@@ -16,7 +16,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.logging.Level;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
@@ -156,18 +158,38 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
             // 构建对象
             Object[] values = new Object[args.length];
 
+            // 对比传递过来的参数和本地函数的参数数目,如果不同就抛出异常.
+            if (args.length == argLength) {
+                out.writeFault("NoSuchMethod",
+                        escapeMessage(String.format("method %s argument length mismatch, received length= %s",
+                                method, argLength)), null);
+            }
+
             // 读取传过来的参数.
             for (int i = 0; i < args.length; i++) {
                 values[i] = in.readObject(args[i]);
             }
 
+            // 真实调用的结果
             Object result = null;
 
             try {
+                // 真实的调用过程.
                 result = method.invoke(method.getDeclaringClass().newInstance(), values);
             } catch (Exception e) {
-                e.printStackTrace();
+
                 // 处理异常
+                Throwable e1 = e;
+                if (e1 instanceof InvocationTargetException)
+                    e1 = ((InvocationTargetException) e).getTargetException();
+
+                logger.error(this + " " + e1.toString(), e1);
+
+                out.writeFault("ServiceException",
+                        escapeMessage(e1.getMessage()),
+                        e1);
+
+                out.close();
             }
 
             // 写入结果到out流中.
@@ -220,6 +242,39 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
         }
 
         return new HessianStream(in, out);
+    }
+
+    // 搬运过来的代码,处理异常
+    private String escapeMessage(String msg) {
+        if (msg == null)
+            return null;
+
+        StringBuilder sb = new StringBuilder();
+
+        int length = msg.length();
+        for (int i = 0; i < length; i++) {
+            char ch = msg.charAt(i);
+
+            switch (ch) {
+                case '<':
+                    sb.append("&lt;");
+                    break;
+                case '>':
+                    sb.append("&gt;");
+                    break;
+                case 0x0:
+                    sb.append("&#00;");
+                    break;
+                case '&':
+                    sb.append("&amp;");
+                    break;
+                default:
+                    sb.append(ch);
+                    break;
+            }
+        }
+
+        return sb.toString();
     }
 
     @Override
