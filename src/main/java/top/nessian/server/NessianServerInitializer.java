@@ -20,7 +20,6 @@ public class NessianServerInitializer  extends ChannelInitializer<SocketChannel>
 
         // 添加加解码
         p.addLast(new HttpServerCodec());
-
         // 自动压缩数据
         p.addLast(new HttpContentDecompressor());
         p.addLast(new NessianServerHandler());
