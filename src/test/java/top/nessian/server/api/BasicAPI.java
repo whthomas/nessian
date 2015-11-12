@@ -1,4 +1,4 @@
-package top.nessian;
+package top.nessian.server.api;
 
 /**
  * Created by whthomas on 15/10/26.

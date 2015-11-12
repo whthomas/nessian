@@ -18,7 +18,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.logging.Level;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
@@ -60,9 +59,13 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
 
         // 之后会获得 http content信息
         if (msg instanceof HttpContent) {
+
             // 获得content
             HttpContent content = (HttpContent) msg;
-            // 处理httpContent
+
+            // 判断是不是Last HttpContent
+
+            // 处理 完整的 httpContent
             this.dealHttpContent(content, ctx);
         }
     }

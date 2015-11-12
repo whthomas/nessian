@@ -52,19 +52,19 @@ public class NessianClient {
             // Make the connection attempt.
             Channel ch = b.connect(host, port).sync().channel();
 
-            // Prepare the HTTP request.
+            // Prepare the HTTP request, Hessian use POST request.
             HttpRequest request = new DefaultFullHttpRequest(
-                    HttpVersion.HTTP_1_1, HttpMethod.GET, uri.getRawPath());
+                    HttpVersion.HTTP_1_1, HttpMethod.POST, uri.getRawPath());
             request.headers().set(HttpHeaders.Names.HOST, host);
             request.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
             request.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
 
             // Set some example cookies.
-            request.headers().set(
-                    HttpHeaders.Names.COOKIE,
-                    ClientCookieEncoder.encode(
-                            new DefaultCookie("my-cookie", "foo"),
-                            new DefaultCookie("another-cookie", "bar")));
+//            request.headers().set(
+//                    HttpHeaders.Names.COOKIE,
+//                    ClientCookieEncoder.encode(
+//                            new DefaultCookie("my-cookie", "foo"),
+//                            new DefaultCookie("another-cookie", "bar")));
 
             // Send the HTTP request.
             ch.writeAndFlush(request);
