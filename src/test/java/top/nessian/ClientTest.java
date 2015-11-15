@@ -11,7 +11,7 @@ import java.net.MalformedURLException;
 public class ClientTest {
     public static void main(String args[]) {
 
-        String url = "http://localhost:8080/hessian/ihessian";
+        String url = "http://localhost:8080/test";
 //        String url = "http://localhost:8080";
 
         HessianProxyFactory factory = new HessianProxyFactory();

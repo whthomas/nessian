@@ -16,7 +16,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
@@ -109,100 +108,82 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
      */
     public void dealHttpContent(HttpContent content, ChannelHandlerContext ctx) throws IOException {
 
-        // 得到一个字节容器ByteBuf,这里的这个ByteBuf是操作直接内存的.
         ByteBuf directBuf = content.content();
 
-        // 转换成数组
         int length = directBuf.readableBytes();
+
         byte[] datas = new byte[length];
+
         directBuf.getBytes(directBuf.readerIndex(), datas);
 
-        // 构建一个响应的response
+        InputStream inputStream = new ByteArrayInputStream(datas);
+
+        HessianInputFactory.HeaderType header = inputFactory.readHeader(inputStream);
+
         FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK);
 
-        // 使用语法糖自动关闭流
-        try (// 形成一个InputStream
-             InputStream inputStream = new ByteArrayInputStream(datas);
-             // 把response的内容放到一个OutputStream中
-             OutputStream outputStream = new ByteBufOutputStream(response.content())) {
+        OutputStream outputStream = new ByteBufOutputStream(response.content());
 
-            // 选取hessian调用的模式
-            HessianStream hessianStream = selectCallType(inputStream, outputStream);
+        // header type is CALL_1_REPLY_2,这里还要做匹配
+        AbstractHessianInput in = hessianFactory.createHessianInput(inputStream);
+        AbstractHessianOutput out = hessianFactory.createHessian2Output(outputStream);
 
-            AbstractHessianInput in = hessianStream.getHessianInput();
-            AbstractHessianOutput out = hessianStream.getHessianOutput();
+//            HessianStream hessianStream = selectCallType(inputStream, outputStream);
+//
+//            AbstractHessianInput in = hessianStream.getHessianInput();
+//            AbstractHessianOutput out = hessianStream.getHessianOutput();
 
-            // 设置序列化工厂
-            in.setSerializerFactory(serializerFactory);
+        in.setSerializerFactory(serializerFactory);
 
-            in.skipOptionalCall();
+        in.skipOptionalCall();
 
-            String headers;
-            while ((headers = in.readHeader()) != null) {
-                Object value = in.readObject();
-            }
-
-            // 取出参数类型数组
-            Class<?> args[] = this.getMethod().getParameterTypes();
-
-            // 获取传来的方法名称
-            String methodName = in.readMethod();
-
-            // 计算传来的数组长度.
-            int argLength = in.readMethodArgLength();
-
-            // 构建对象
-            Object[] values = new Object[args.length];
-
-            // 对比传递过来的参数和本地函数的参数数目,如果不同就抛出异常.
-            if (args.length == argLength) {
-                out.writeFault("NoSuchMethod",
-                        escapeMessage(String.format("method %s argument length mismatch, received length= %s",
-                                method, argLength)), null);
-            }
-
-            // 读取传过来的参数.
-            for (int i = 0; i < args.length; i++) {
-                values[i] = in.readObject(args[i]);
-            }
-
-            // 真实调用的结果
-            Object result = null;
-
-            try {
-                // 真实的调用过程.
-                result = method.invoke(method.getDeclaringClass().newInstance(), values);
-            } catch (Exception e) {
-
-                // 处理异常
-                Throwable e1 = e;
-                if (e1 instanceof InvocationTargetException)
-                    e1 = ((InvocationTargetException) e).getTargetException();
-
-                logger.error(this + " " + e1.toString(), e1);
-
-                out.writeFault("ServiceException",
-                        escapeMessage(e1.getMessage()),
-                        e1);
-
-                out.close();
-            }
-
-            // 写入结果到out流中.
-            out.writeReply(result);
+        String headers;
+        while ((headers = in.readHeader()) != null) {
+            Object value = in.readObject();
         }
 
-        // 声明response的信息
+        // 取出参数类型数组
+        Class<?> args[] = this.getMethod().getParameterTypes();
+
+        // 获取传来的方法名称
+        String methodName = in.readMethod();
+
+        // 计算传来的数组长度.
+        int argLength = in.readMethodArgLength();
+
+        // 构建对象
+        Object[] values = new Object[args.length];
+
+        // 读取传过来的参数.
+        for (int i = 0; i < args.length; i++) {
+            values[i] = in.readObject(args[i]);
+        }
+
+        Object result = null;
+
+        try {
+            result = method.invoke(method.getDeclaringClass().newInstance(), values);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // 处理异常
+        }
+
+        out.writeReply(result);
+        out.close();
+        in.close();
+
+//            response.content().writeBytes();
+
         response.headers().set(CONTENT_TYPE, "x-application/hessian");
         response.headers().set(CONTENT_LENGTH, response.content().readableBytes());
 
-        // 判断是否构建长连接.并根据此响应信息.
         if (!keepAlive) {
             ctx.write(response).addListener(ChannelFutureListener.CLOSE);
         } else {
             response.headers().set(CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
             ctx.write(response);
         }
+
     }
 
     // 判断请求的格式
