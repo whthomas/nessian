@@ -3,6 +3,8 @@ package top.nessian.server;
 import com.caucho.hessian.io.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -17,6 +19,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
@@ -33,7 +37,8 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
     private static final HessianFactory hessianFactory = new HessianFactory();
     private static final HessianInputFactory inputFactory = new HessianInputFactory();
 
-//    private CompositeByteBuf compositeByteBuf = ByteBufAllocator.compositeBuffer();
+    private CompositeByteBuf compositeByteBuf;
+    private List<ByteBuf> contents;
 
     // 存方法
     private Method method;
@@ -47,13 +52,17 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, Object msg) {
 
         // 先获取 http Request 头信息
         if (msg instanceof HttpRequest) {
             HttpRequest request = (HttpRequest) msg;
             // 调用下面的method处理.
-            this.dealRequestInfo(request, ctx);
+            try {
+                this.dealRequestInfo(request, ctx);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         // 之后会获得 http content信息
@@ -62,10 +71,43 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
             // 获得content
             HttpContent content = (HttpContent) msg;
 
-            // 判断是不是Last HttpContent
+            if (content instanceof LastHttpContent) {
 
-            // 处理 完整的 httpContent
-            this.dealHttpContent(content, ctx);
+                InputStream inputStream;
+                // 如果为空,则证明只需要这一个HttpContent就可以处理了
+                if (compositeByteBuf == null) {
+                    inputStream = toInputStream(content);
+                } else {
+                    // 这说明需要处理compositeByteBuf了
+                    ByteBuf byteBuf = content.content();
+                    byteBuf.retain();
+
+                    contents.add(byteBuf);
+
+                    compositeByteBuf = Unpooled.compositeBuffer(contents.size());
+
+                    contents.forEach(e -> compositeByteBuf.addComponent(e));
+
+                    inputStream = toInputStream(compositeByteBuf);
+                }
+
+                try {
+                    this.dealHttpContent(inputStream, ctx);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            } else {
+
+                if (contents == null) {
+                    contents = new ArrayList<>();
+                }
+
+                ByteBuf byteBuf = content.content();
+                byteBuf.retain();
+
+                contents.add(content.content());
+            }
         }
     }
 
@@ -99,24 +141,41 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
 
-    /**
-     * 处理 HttpContent 的method
-     *
-     * @param content
-     * @param ctx
-     * @throws IOException
-     */
-    public void dealHttpContent(HttpContent content, ChannelHandlerContext ctx) throws IOException {
+    private InputStream toInputStream(HttpContent content) {
 
         ByteBuf directBuf = content.content();
 
         int length = directBuf.readableBytes();
 
-        byte[] datas = new byte[length];
+        byte[] data = new byte[length];
 
-        directBuf.getBytes(directBuf.readerIndex(), datas);
+        directBuf.getBytes(directBuf.readerIndex(), data);
 
-        InputStream inputStream = new ByteArrayInputStream(datas);
+        return new ByteArrayInputStream(data);
+
+    }
+
+    private InputStream toInputStream(CompositeByteBuf compositeByteBuf) {
+
+        compositeByteBuf.readableBytes();
+        int length = compositeByteBuf.capacity() - compositeByteBuf.readerIndex();
+
+        byte[] data = new byte[length];
+
+        compositeByteBuf.getBytes(compositeByteBuf.readerIndex(), data);
+
+        return new ByteArrayInputStream(data);
+
+    }
+
+    /**
+     * 处理 HttpContent 的method
+     *
+     * @param inputStream
+     * @param ctx
+     * @throws IOException
+     */
+    public void dealHttpContent(InputStream inputStream, ChannelHandlerContext ctx) throws IOException {
 
         HessianInputFactory.HeaderType header = inputFactory.readHeader(inputStream);
 
@@ -162,6 +221,7 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
         Object result = null;
 
         try {
+            // 实际上的调用
             result = method.invoke(method.getDeclaringClass().newInstance(), values);
         } catch (Exception e) {
             e.printStackTrace();
@@ -258,6 +318,11 @@ public class NessianServerHandler extends SimpleChannelInboundHandler<Object> {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error("处理发生异常,通道关闭.", cause);
         ctx.close();
+    }
+
+    @Override
+    public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+        compositeByteBuf.release();
     }
 
     public Method getMethod() {
