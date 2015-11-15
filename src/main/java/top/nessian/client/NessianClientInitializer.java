@@ -23,6 +23,6 @@ public class NessianClientInitializer extends ChannelInitializer<SocketChannel> 
 
         // Uncomment the following line if you don't want to handle HttpContents.
         //p.addLast(new HttpObjectAggregator(1048576));
-        p.addLast(new NessianClientHandler());
+        p.addLast("nessianClient",new NessianClientHandler());
     }
 }

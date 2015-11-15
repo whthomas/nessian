@@ -1,12 +1,14 @@
 package top.nessian.client;
 
+import com.caucho.hessian.io.AbstractHessianInput;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -14,6 +16,9 @@ import java.net.URISyntaxException;
  * Created by whthomas on 15/11/11.
  */
 public class NessianClient {
+
+    private InputStream inputStream;
+    private InputStream errorStream;
 
     public static void sendRequest(String url) throws URISyntaxException, InterruptedException {
 
@@ -50,7 +55,8 @@ public class NessianClient {
                     .handler(new NessianClientInitializer());
 
             // Make the connection attempt.
-            Channel ch = b.connect(host, port).sync().channel();
+            ChannelFuture channelFuture = b.connect(host, port).sync();
+            Channel ch = channelFuture.channel();
 
             // Prepare the HTTP request, Hessian use POST request.
             HttpRequest request = new DefaultFullHttpRequest(
@@ -65,6 +71,40 @@ public class NessianClient {
 //                    ClientCookieEncoder.encode(
 //                            new DefaultCookie("my-cookie", "foo"),
 //                            new DefaultCookie("another-cookie", "bar")));
+
+//            ch.pipeline().
+
+            // 定义当请求完成的时候,触发的事件
+            channelFuture.addListener(new ChannelFutureListener() {
+                public void operationComplete(ChannelFuture future) {
+                    // 先获取到那个Handler
+                    NessianClientHandler channelHandler =
+                            (NessianClientHandler)future.channel().pipeline().get("nessianClient");
+                    // 获取response回来的hessian格式的数据InputStream
+                    InputStream is = channelHandler.getInputStream();
+
+                    AbstractHessianInput in;
+
+                    try {
+                        int code = is.read();
+
+                        if (code == 'H') {
+                            int major = is.read();
+                            int minor = is.read();
+
+//                            in = _factory.getHessian2Input(is);
+//
+//                            Object value = in.readReply(method.getReturnType());
+//
+//                            return value;
+                        }
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            });
 
             // Send the HTTP request.
             ch.writeAndFlush(request);

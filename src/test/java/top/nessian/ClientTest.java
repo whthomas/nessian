@@ -1,6 +1,7 @@
 package top.nessian;
 
 import com.caucho.hessian.client.HessianProxyFactory;
+import top.nessian.server.api.BasicAPI;
 
 import java.net.MalformedURLException;
 
