@@ -2,6 +2,7 @@ package top.nessian;
 
 import com.caucho.hessian.client.HessianProxyFactory;
 import top.nessian.server.api.BasicAPI;
+import top.nessian.server.api.Vo;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,7 +29,12 @@ public class ClientTest {
 
 //        InputStream inputStream = Files.newInputStream(Paths.get("/Users/whthomas/development/dev_test/ssqian/d.png"));
 
-        System.out.println("hello(): " + basic.bingo("bingo!"));
+        Vo vo = new Vo();
+
+        vo.setAge(10);
+        vo.setName("whthomas");
+
+        System.out.println("hello(): " + basic.bingo(vo));
 
     }
 }

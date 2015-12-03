@@ -8,6 +8,6 @@ import java.io.InputStream;
 public interface BasicAPI {
     String hello(String word,InputStream data);
 
-    String bingo(String luck);
+    Vo bingo(Vo vo);
 
 }

@@ -6,10 +6,7 @@ package top.nessian.server;
 public class Servertest {
 
     public static void main(String args[]){
-
-
         NessianServer.start("top.nessian.server.api");
-
     }
 
 }

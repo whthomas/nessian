@@ -3,6 +3,7 @@ package top.nessian.server;
 import org.apache.commons.io.IOUtils;
 import top.nessian.server.annotation.NessianAPI;
 import top.nessian.server.api.BasicAPI;
+import top.nessian.server.api.Vo;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +33,11 @@ public class BasicServer implements BasicAPI {
 
     @NessianAPI("/bingo")
     @Override
-    public String bingo(String luck) {
-        return luck;
+    public Vo bingo(Vo vo) {
+
+        System.out.println(vo.getName());
+        System.out.println(vo.getAge());
+
+        return vo;
     }
 }
