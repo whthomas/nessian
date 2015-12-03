@@ -13,7 +13,7 @@ public class NessianProxyFactory {
      * @param target
      * @return
      */
-    public Object create(Class target) {
+    public static Object create(Class target) {
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(target);
         // 回调方法

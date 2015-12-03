@@ -52,8 +52,6 @@ public class NessianProxy implements MethodInterceptor {
         AbstractHessianOutput out = out1;
         out1.setVersion(2);
 
-
-
         out.setSerializerFactory(serializerFactory);
 
         try {
